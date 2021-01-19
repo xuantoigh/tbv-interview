@@ -28,7 +28,7 @@ import static org.junit.Assert.assertEquals;
 @SpringBootTest(classes = Application.class)
 @AutoConfigureMockMvc
 @TestPropertySource(
-        locations = "classpath:application.properties")
+        locations = "classpath:application-dev.properties")
 public class EmployeeControllerTest {
 
     @Autowired

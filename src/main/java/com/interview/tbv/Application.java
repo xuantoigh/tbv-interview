@@ -15,6 +15,7 @@ import javax.annotation.PostConstruct;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
@@ -35,41 +36,50 @@ public class Application {
     @Autowired
     private EmployeeService employeeService;
 
+    private final Environment env;
+
+    public Application(Environment env) {
+        this.env = env;
+    }
+
     @PostConstruct
     private void init() {
-        //init user
-        User user = userService.findUserToAuthenticate("userdev");
-        if (Objects.isNull(user)) {
-            user = User.builder()
-                    .userName("userdev")
-                    .name("dev")
-                    .lastName("dev")
-                    .email("dev@dev.com")
-                    .password("Admin123456")
+        Collection<String> activeProfiles = Arrays.asList(env.getActiveProfiles());
+        if (activeProfiles.contains("dev")) {
+            //init user
+            User user = userService.findUserToAuthenticate("userdev");
+            if (Objects.isNull(user)) {
+                user = User.builder()
+                        .userName("userdev")
+                        .name("dev")
+                        .lastName("dev")
+                        .email("dev@dev.com")
+                        .password("Admin123456")
+                        .build();
+                user.addRole(Role.ADMIN);
+                userService.saveUser(user);
+            }
+            log.info("{}dev account: {} / {} {}", ANSI_GREEN, user.getEmail(), user.getPassword(), ANSI_RESET);
+
+            //init employee
+            Employee employee = Employee.builder()
+                    .id("EMP-1")
+                    .name("James")
+                    .isDirector(true)
                     .build();
-            user.addRole(Role.ADMIN);
-            userService.saveUser(user);
+
+            Employee employee2 = Employee.builder()
+                    .id("EMP-2")
+                    .name("Fiona")
+                    .teamIds(Arrays.asList("T-1", "T-2"))
+                    .isDirector(false)
+                    .build();
+
+            List<Employee> employees = asList(employee, employee2);
+
+            //save data to db
+            employeeService.saveAll(employees);
         }
-        log.info("{}dev account: {} / {} {}", ANSI_GREEN, user.getEmail(), user.getPassword(), ANSI_RESET);
-
-        //init employee
-        Employee employee = Employee.builder()
-                .id("EMP-1")
-                .name("James")
-                .isDirector(true)
-                .build();
-
-        Employee employee2 = Employee.builder()
-                .id("EMP-2")
-                .name("Fiona")
-                .teamIds(Arrays.asList("T-1", "T-2"))
-                .isDirector(false)
-                .build();
-
-        List<Employee> employees = asList(employee, employee2);
-
-        //save data to db
-        employeeService.saveAll(employees);
     }
 
     public static void main(String[] args) throws UnknownHostException {
@@ -80,7 +90,7 @@ public class Application {
             protocol = "https";
         }
         log.info("\n----------------------------------------------------------\n\t" +
-                        "Application TBV Interview'{}' is running! Access URLs:\n\t" +
+                        "Application TBV Interview '{}' is running! Access URLs:\n\t" +
                         "Local: \t\t{}://localhost:{}\n\t" +
                         "External: \t{}://{}:{}\n\t" +
                         "Profile(s): \t{}\n----------------------------------------------------------",
